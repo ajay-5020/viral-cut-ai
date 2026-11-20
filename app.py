@@ -152,11 +152,10 @@ async def process(file:UploadFile|None=File(None), url:str=Form(""), aspect:str=
         return {"job":job,"duration":dur,"clips":clips,"captions":cap_url,
                 "caption_status":"generated" if has_caps else "not_generated",
                 "notice":"Highlight selection is heuristic, not guaranteed viral. Only use videos you own or have permission to edit."}
-    except Exception as e:
-    import traceback
-    traceback.print_exc()
-    raise HTTPException(500,str(e))
-
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(500,str(e))
 @app.get("/sw.js")
 def service_worker():
     return FileResponse(ROOT/"templates"/"sw.js", media_type="application/javascript")
