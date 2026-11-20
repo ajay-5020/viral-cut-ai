@@ -25,11 +25,48 @@ def duration(path):
     return float(d["format"]["duration"])
 
 def download_url(url, dest):
-    # yt-dlp supports many sites; availability depends on each platform's access rules.
-    run(["yt-dlp","--no-playlist","-f","bv*+ba/b","--merge-output-format","mp4","-o",str(dest),url])
-    candidates=list(dest.parent.glob(dest.stem+"*"))
-    if not candidates: raise RuntimeError("No video downloaded. This platform/link may not be supported.")
-    return max(candidates,key=lambda x:x.stat().st_size)
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url.strip())
+    host = (parsed.hostname or "").lower()
+
+    allowed = {
+        "youtube.com",
+        "www.youtube.com",
+        "m.youtube.com",
+        "youtu.be",
+        "www.youtu.be"
+    }
+
+    if parsed.scheme not in ("http", "https") or host not in allowed:
+        raise RuntimeError("Please paste a valid public YouTube URL.")
+
+    template = str(dest.with_name(dest.stem + ".%(ext)s"))
+
+    run([
+        "yt-dlp",
+        "--no-playlist",
+        "--no-warnings",
+        "--socket-timeout", "30",
+        "--retries", "2",
+        "-f", "bv*+ba/b",
+        "--merge-output-format", "mp4",
+        "-o", template,
+        url.strip()
+    ])
+
+    candidates = [
+        p for p in dest.parent.glob(dest.stem + ".*")
+        if p.is_file() and not p.name.endswith((".part", ".ytdl"))
+    ]
+
+    if not candidates:
+        raise RuntimeError(
+            "YouTube video could not be downloaded. "
+            "It may be private, restricted, or unavailable."
+        )
+
+    return max(candidates, key=lambda x: x.stat().st_size)
 
 def detect_moments(path, dur):
     # Heuristic highlight finder: audio peaks + scene changes. Not a trained viral-content model.
