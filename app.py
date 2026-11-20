@@ -76,14 +76,25 @@ async def process(file:UploadFile|None=File(None), url:str=Form(""), aspect:str=
         dur=duration(source)
         moments=detect_moments(source,dur)
         has_caps=captions(source,folder)
-        clips=[]
-        vf={"9:16":"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
-            "16:9":"scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2",
-            "1:1":"scale=1080:1080:force_original_aspect_ratio=increase,crop=1080:1080"}.get(aspect,"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920")
+        
+        vf={
+            "9:16":"fps=30,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280",
+            "16:9":"fps=30,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2",
+            "1:1":"fps=30,scale=720:720:force_original_aspect_ratio=increase,crop=720:720"
+        }.get(aspect,"fps=30,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280")
+  
         for i,(start,length) in enumerate(moments,1):
             out=folder/f"clip_{i}.mp4"
-            run(["ffmpeg","-y","-ss",str(start),"-i",str(source),"-t",str(length),"-vf",vf,"-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-movflags","+faststart",str(out)])
+            run([
+                "ffmpeg","-y","-threads","1",
+                "-ss",str(start),"-i",str(source),"-t",str(length),
+                "-vf",vf,"-c:v","libx264",
+                "-preset","ultrafast","-crf","28","-threads","1",
+                "-c:a","aac","-b:a","96k",
+                "-movflags","+faststart",str(out)
+            ])
             clips.append({"name":out.name,"url":f"/media/outputs/{job}/{out.name}","start":start,"duration":length})
+            
         cap_url=f"/media/outputs/{job}/captions.srt" if has_caps else None
         return {"job":job,"duration":dur,"clips":clips,"captions":cap_url,
                 "caption_status":"generated" if has_caps else "not_generated",
