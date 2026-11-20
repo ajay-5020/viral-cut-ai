@@ -1,0 +1,3 @@
+self.addEventListener("install",e=>{e.waitUntil(caches.open("viralcut-v1").then(c=>c.addAll(["/","/manifest.webmanifest"])));self.skipWaiting()});
+self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));
+self.addEventListener("fetch",e=>{if(e.request.method==="GET" && new URL(e.request.url).origin===location.origin){e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)))}});
