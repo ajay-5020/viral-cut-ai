@@ -26,25 +26,30 @@ def duration(path):
 
 def download_url(url, dest):
     from urllib.parse import urlparse
+    import ipaddress
 
-    parsed = urlparse(url.strip())
+    url = url.strip()
+    parsed = urlparse(url)
     host = (parsed.hostname or "").lower()
 
-    allowed = {
-        "youtube.com",
-        "www.youtube.com",
-        "m.youtube.com",
-        "youtu.be",
-        "www.youtu.be"
-    }
+    if parsed.scheme not in ("http", "https") or not host:
+        raise RuntimeError("Please paste a valid video URL.")
 
-    if parsed.scheme not in ("http", "https") or host not in allowed:
-        raise RuntimeError("Please paste a valid public YouTube URL.")
+    if host in ("localhost",) or host.endswith(".local"):
+        raise RuntimeError("This URL is not allowed.")
+
+    try:
+        ip = ipaddress.ip_address(host)
+        if not ip.is_global:
+            raise RuntimeError("This URL is not allowed.")
+    except ValueError:
+        pass
 
     template = str(dest.with_name(dest.stem + ".%(ext)s"))
 
     run([
         "yt-dlp",
+        "--ignore-config",
         "--no-playlist",
         "--no-warnings",
         "--socket-timeout", "30",
@@ -52,7 +57,7 @@ def download_url(url, dest):
         "-f", "bv*+ba/b",
         "--merge-output-format", "mp4",
         "-o", template,
-        url.strip()
+        url
     ])
 
     candidates = [
@@ -62,8 +67,7 @@ def download_url(url, dest):
 
     if not candidates:
         raise RuntimeError(
-            "YouTube video could not be downloaded. "
-            "It may be private, restricted, or unavailable."
+            "Video unavailable or unsupported by this platform."
         )
 
     return max(candidates, key=lambda x: x.stat().st_size)
