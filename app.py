@@ -74,61 +74,23 @@ def download_url(url, dest):
 
 
 def detect_moments(path, dur):
-    import re
+    clip_len = 20
 
-    clip_len = 30
     if dur <= clip_len:
         return [(0, max(1, dur))]
 
-    candidates = []
+    count = min(3, max(1, int(dur // 45) + 1))
+    step = (dur - clip_len) / max(1, count - 1)
 
-    try:
-        result = subprocess.run(
-            [
-                "ffmpeg", "-hide_banner",
-                "-i", str(path),
-                "-vf", "select='gt(scene,0.30)',showinfo",
-                "-an", "-f", "null", "-"
-            ],
-            capture_output=True,
-            text=True,
-            timeout=1800
-        )
-
-        times = re.findall(
-            r"pts_time:([0-9.]+)",
-            result.stderr
-        )
-
-        for value in times:
-            t = float(value)
-            start = max(0, min(dur - clip_len, t - 10))
-
-            if all(abs(start - old) >= clip_len for old in candidates):
-                candidates.append(start)
-
-    except Exception:
-        candidates = []
-
-    if candidates:
-        candidates = sorted(candidates)
-
-        if len(candidates) > 15:
-            step = (len(candidates) - 1) / 14
-            candidates = [
-                candidates[round(i * step)]
-                for i in range(15)
-            ]
-    else:
-        count = min(15, max(1, int(dur // 120) + 1))
-        step = (dur - clip_len) / max(1, count - 1)
-        candidates = [
-            i * step for i in range(count)
-        ]
+    candidates = [
+        round(i * step, 2)
+        for i in range(count)
+    ]
 
     return [
-        (round(start, 2), round(min(clip_len, dur - start), 2))
+        (start, round(min(clip_len, dur - start), 2))
         for start in candidates
+        if start < dur
     ]
     
 def captions(video, outdir):
