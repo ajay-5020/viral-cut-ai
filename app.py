@@ -33,7 +33,7 @@ def download_url(url, dest):
 
 def detect_moments(path, dur):
     # Heuristic highlight finder: audio peaks + scene changes. Not a trained viral-content model.
-    out=run(["ffmpeg","-hide_banner","-i",str(path),"-af","aselect='gt(scene,0.25)',astats=metadata=1:reset=1","-f","null","-"])
+    #out=run(["ffmpeg","-hide_banner","-i",str(path),"-af","aselect='gt(scene,0.25)',astats=metadata=1:reset=1","-f","null","-"])
     # Stable fallback clips distributed across the video.
     clip_len=min(35,max(12,dur/5))
     if dur<=clip_len: return [(0,max(1,dur))]
