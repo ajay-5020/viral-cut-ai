@@ -1,0 +1,35 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d14">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<title>Viral Cut AI</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b0d14;color:#f4f5fb;font:15px Inter,system-ui}header{padding:18px max(5vw, env(safe-area-inset-left));border-bottom:1px solid #24283a;display:flex;justify-content:space-between}b.logo{font-size:22px;letter-spacing:1px}.tag{color:#9b8cff}.wrap{max-width:1050px;margin:clamp(20px,5vh,45px) auto;padding:0 16px}.hero{text-align:center;margin-bottom:35px}.hero h1{font-size:clamp(32px,5vw,54px);margin:0 0 10px}.hero p{color:#aab0c3}.panel{background:#141824;border:1px solid #292f43;border-radius:20px;padding:25px;box-shadow:0 20px 70px #0005}.tabs{display:flex;gap:10px;margin-bottom:18px}.tab,button,select{border:1px solid #343b53;background:#20263a;color:white;border-radius:10px;padding:12px 16px;cursor:pointer}.tab.active,button.primary{background:#7658f5;border-color:#7658f5}.field{width:100%;padding:16px;background:#0e121d;border:1px solid #343b53;color:white;border-radius:10px;margin:10px 0 18px}.drop{border:1px dashed #555e7d;padding:28px;text-align:center;border-radius:14px;color:#b9bfd0}.row{display:flex;gap:15px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.muted{color:#9da5ba;font-size:13px}.result{margin-top:25px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}.clip{background:#0d111b;border:1px solid #30364a;border-radius:13px;padding:12px}.clip video{width:100%;max-height:330px;background:#000;border-radius:8px}.clip a{color:#b7aaff}.status{margin-top:15px;color:#b9afff;white-space:pre-wrap}.hidden{display:none}button:disabled{opacity:.5;cursor:wait}
+@media(max-width:600px){
+ header{padding:14px 16px}.logo{font-size:19px!important}
+ .panel{padding:16px;border-radius:16px}.tabs button{flex:1;padding:12px 8px}
+ .row{display:grid;grid-template-columns:1fr}.row>*{width:100%}
+ .row button{min-height:50px}.field{font-size:16px}
+ .drop{display:block;padding:20px 12px}.hero{margin-bottom:22px}
+ .result{grid-template-columns:1fr}.clip video{max-height:none}
+}
+
+</style></head><body><header><b class="logo">✦ VIRAL CUT <span class="tag">AI</span></b><span class="muted">VIDEO CLIP STUDIO</span></header><main class="wrap"><section class="hero"><h1>Turn long videos into <span class="tag">shorts.</span></h1><p>Upload a video or paste a supported video URL. Generate clips and captions.</p></section>
+<section class="panel"><div class="tabs"><button class="tab active" id="uploadTab">Upload video</button><button class="tab" id="urlTab">Paste video link</button></div>
+<form id="form"><div id="uploadBox"><label class="drop">📁 Choose a video from your phone or computer<input class="field" type="file" name="file" id="file" accept="video/*"></label></div>
+<div id="urlBox" class="hidden"><label class="muted">VIDEO URL</label><input class="field" name="url" id="url" placeholder="Paste YouTube or another supported platform URL"></div>
+<div class="row"><label>Output format<select class="field" name="aspect"><option value="9:16">9:16 — Shorts / Reels</option><option value="16:9">16:9 — YouTube</option><option value="1:1">1:1 — Square</option></select></label><button class="primary" id="go" type="submit">✨ Find moments & create clips</button></div></form>
+<div class="status" id="status"></div><div class="result" id="result"></div>
+<p class="muted">Captions are generated as an SRT subtitle file when the optional speech model is installed. Platform links work only where downloading is permitted and supported. Respect copyright, platform terms and privacy.</p></section></main>
+<script>
+const $=id=>document.getElementById(id);let mode='upload';
+$('uploadTab').onclick=()=>{mode='upload';$('uploadTab').classList.add('active');$('urlTab').classList.remove('active');$('uploadBox').classList.remove('hidden');$('urlBox').classList.add('hidden')};
+$('urlTab').onclick=()=>{mode='url';$('urlTab').classList.add('active');$('uploadTab').classList.remove('active');$('urlBox').classList.remove('hidden');$('uploadBox').classList.add('hidden')};
+$('form').onsubmit=async e=>{e.preventDefault();$('result').innerHTML='';$('status').textContent='Uploading / importing video… Processing and rendering clips. Keep this page open.';$('go').disabled=true;
+try{let fd=new FormData(e.target);if(mode==='upload')fd.set('url','');else fd.delete('file');
+let r=await fetch('/api/process',{method:'POST',body:fd});let data=await r.json();if(!r.ok)throw Error(data.detail||'Processing failed');
+$('status').textContent=`Done · ${data.clips.length} clips · ${Math.round(data.duration)} sec source\n${data.notice}`;
+data.clips.forEach(c=>{let el=document.createElement('div');el.className='clip';el.innerHTML=`<b>${c.name}</b><p class="muted">Start ${c.start}s · ${Math.round(c.duration)}s</p><video controls src="${c.url}"></video><a href="${c.url}" download>Download MP4 ↓</a>`;$('result').appendChild(el)});
+if(data.captions){let a=document.createElement('p');a.innerHTML=`<a href="${data.captions}" download style="color:#b7aaff">Download auto captions (.SRT) ↓</a>`;$('result').appendChild(a)}else{$('status').textContent+='\\nAuto captions unavailable: install the optional faster-whisper model.'}
+}catch(err){$('status').textContent='Error: '+err.message}finally{$('go').disabled=false}};
+</script></body></html>
