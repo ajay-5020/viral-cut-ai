@@ -42,6 +42,7 @@ def detect_moments(path, dur):
     return [(round(i*step,2),round(min(clip_len,dur-i*step),2)) for i in range(count) if i*step<dur]
 
 def captions(video, outdir):
+    return False
     try:
         from faster_whisper import WhisperModel
         model=WhisperModel(os.getenv("WHISPER_MODEL","base"), device="cpu", compute_type="int8")
