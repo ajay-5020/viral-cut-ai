@@ -76,6 +76,7 @@ async def process(file:UploadFile|None=File(None), url:str=Form(""), aspect:str=
         dur=duration(source)
         moments=detect_moments(source,dur)
         has_caps=captions(source,folder)
+        clips=[]
         
         vf={
             "9:16":"fps=30,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280",
