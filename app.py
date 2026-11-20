@@ -72,16 +72,65 @@ def download_url(url, dest):
 
     return max(candidates, key=lambda x: x.stat().st_size)
 
-def detect_moments(path, dur):
-    # Heuristic highlight finder: audio peaks + scene changes. Not a trained viral-content model.
-    #out=run(["ffmpeg","-hide_banner","-i",str(path),"-af","aselect='gt(scene,0.25)',astats=metadata=1:reset=1","-f","null","-"])
-    # Stable fallback clips distributed across the video.
-    clip_len=min(35,max(12,dur/5))
-    if dur<=clip_len: return [(0,max(1,dur))]
-    count=min(6,max(1,int(dur//90)+1))
-    step=max(clip_len,(dur-clip_len)/max(1,count-1))
-    return [(round(i*step,2),round(min(clip_len,dur-i*step),2)) for i in range(count) if i*step<dur]
 
+def detect_moments(path, dur):
+    import re
+
+    clip_len = 30
+    if dur <= clip_len:
+        return [(0, max(1, dur))]
+
+    candidates = []
+
+    try:
+        result = subprocess.run(
+            [
+                "ffmpeg", "-hide_banner",
+                "-i", str(path),
+                "-vf", "select='gt(scene,0.30)',showinfo",
+                "-an", "-f", "null", "-"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=1800
+        )
+
+        times = re.findall(
+            r"pts_time:([0-9.]+)",
+            result.stderr
+        )
+
+        for value in times:
+            t = float(value)
+            start = max(0, min(dur - clip_len, t - 10))
+
+            if all(abs(start - old) >= clip_len for old in candidates):
+                candidates.append(start)
+
+    except Exception:
+        candidates = []
+
+    if candidates:
+        candidates = sorted(candidates)
+
+        if len(candidates) > 15:
+            step = (len(candidates) - 1) / 14
+            candidates = [
+                candidates[round(i * step)]
+                for i in range(15)
+            ]
+    else:
+        count = min(15, max(1, int(dur // 120) + 1))
+        step = (dur - clip_len) / max(1, count - 1)
+        candidates = [
+            i * step for i in range(count)
+        ]
+
+    return [
+        (round(start, 2), round(min(clip_len, dur - start), 2))
+        for start in candidates
+    ]
+    
 def captions(video, outdir):
     return False
     try:
