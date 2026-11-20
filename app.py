@@ -153,7 +153,9 @@ async def process(file:UploadFile|None=File(None), url:str=Form(""), aspect:str=
                 "caption_status":"generated" if has_caps else "not_generated",
                 "notice":"Highlight selection is heuristic, not guaranteed viral. Only use videos you own or have permission to edit."}
     except Exception as e:
-        raise HTTPException(500,str(e))
+    import traceback
+    traceback.print_exc()
+    raise HTTPException(500,str(e))
 
 @app.get("/sw.js")
 def service_worker():
